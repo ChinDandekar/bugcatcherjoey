@@ -1,0 +1,13 @@
+# Dependency directories (Must ignore this!)
+node_modules/
+
+# Ignore the lock file as requested
+package-lock.json
+
+# Local environment variables
+.env
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
