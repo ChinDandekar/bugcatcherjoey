@@ -63,7 +63,7 @@ def counter_agent(pokemon_info):
             coverage_report.append(f"❌ Error calculating vs {threat}")
         elif res.get("ohko"):
             # Claim the threat in shared memory!
-            team_memory.put(threat, name)
+            team_memory[threat] = name
             coverage_report.append(f"🎯 COUNTER FOUND: {res['desc']}")
         else:
             coverage_report.append(f"⚠️ Cannot OHKO {threat} with {move}")
