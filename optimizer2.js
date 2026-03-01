@@ -32,7 +32,7 @@ function getMoveStatInteraction(move) {
 }
 
 // Constants
-const TOP_N_THREATS = 10;
+const TOP_N_THREATS = 50;
 const MIN_POKEMON_USAGE_PCT = 0.001;
 const MIN_BUILD_USAGE_PCT = 0.01;
 const MIN_MOVES_PCT = 0.1;
@@ -536,6 +536,7 @@ async function allocateEvs(ourPokemon, allCounters, countered_data) {
         // 3. Check if we countered the weighted majority (e.g., > 50% of this Pokemon's builds)
         if (usageHandledByOurMon > (totalThreatUsage / 2) && usageHandledByOurMon > 0) {
             countered_data.pokemon_countered[name] = ourPokemon.name;
+            delete countered_data.pokemon_lost_to[name];
             countered_data.percentage_covered += usageHandledByOurMon;
             
 // console.log (`  [Success] ${ourPokemon.name} covered ${name} (${(usageHandledByOurMon * 100).toFixed(2)}% meta usage)`);
@@ -568,7 +569,7 @@ async function getCounterType(ourPokemon, threatPokemon, offensiveMove, defensiv
     return counterOption ? counterOption.counter_type : null;
 }
 
-async function optimize(ourMon, fmt, countered_data, ourMoves = [], nature = "Hardy") {
+async function optimize(ourMon, fmt, countered_data, threats, ourMoves = [], nature = "Hardy") {
 // console.log (`\n${'='.repeat(55)}`);
 // console.log (`  Optimizing ${ourMon} for ${fmt}`);
 // console.log (`${'='.repeat(55)}`);
@@ -576,10 +577,8 @@ async function optimize(ourMon, fmt, countered_data, ourMoves = [], nature = "Ha
     const [formatId, genNum] = parseFormat(fmt);
 
 // console.log ("\n[1/3] Fetching meta threats...");
-    const chaos = await fetchChaosJson(formatId);
-    if (!chaos) throw new Error(`Could not fetch chaos data for: ${formatId}`);
 
-    const threats = getTopThreats(chaos);
+
 // console.log (`      ${threats.length} threats above ${(MIN_POKEMON_USAGE_PCT * 100).toFixed(0)}% usage`);
 
 // console.log ("\n[2/3] Binary-searching counter conditions per threat...");
@@ -698,9 +697,19 @@ if (process.argv[1] === fileURLToPath(import.meta.url) || require.main === modul
         }
 
 // console.log (`Starting optimization for ${input.team.length} Pokémon...`);
+        
+        const chaos = await fetchChaosJson(fmt);
+        if (!chaos) throw new Error(`Could not fetch chaos data for: ${fmt}`);
+        const threats = getTopThreats(chaos);
+
         let countered_data = {
             pokemon_countered: {},
+            pokemon_lost_to: {},
             percentage_covered: 0
+        }
+
+        for (const threat of threats) {
+            countered_data.pokemon_lost_to[threat.name] = threat.usage_pct; // Initialize with null (not yet countered)
         }
 
         // Run optimizations sequentially to avoid race conditions or log spam
@@ -717,7 +726,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url) || require.main === modul
 // console.log (`\n--- Optimizing ${name} (${nature}) ---`);
                 let assigned_evs = null;
                 try {
-                    assigned_evs = (await optimize(name, fmt, countered_data, cleanMoves, nature)).options.evs;
+                    assigned_evs = (await optimize(name, fmt, countered_data, threats, cleanMoves, nature)).options.evs;
                 } catch (err) {
                     console.error(`Failed to optimize ${name}:`, err.message);
                 }
@@ -736,6 +745,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url) || require.main === modul
 
             let output_data = {
                 pokemon_countered: countered_data.pokemon_countered,
+                pokemon_lost_to: countered_data.pokemon_lost_to,
                 percentage_covered: countered_data.percentage_covered,
                 assigned_evs_per_pokemon: assigned_evs_per_pokemon
             }
