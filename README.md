@@ -1,9 +1,9 @@
-# Bugcatcher Joey: AI Pokémon Meta Optimizer 🧢⚡️
+# BugCatcher Joey: AI Pokémon Meta Optimizer 🧢⚡️
 
 **Built for HackIllinois 2026**
 
 ## 🚀 Elevator Pitch
-Competitive Pokémon is a game of intense strategy, deep mathematical damage calculations, and predicting an ever-shifting metagame. **Bugcatcher Joey** is an intelligent, high-performance AI Strategist that takes your favorite custom Pokémon team and rigorously stress-tests it against the current top-tier Smogon OU metagame threats. Using a custom hybrid architecture—combining a cutting-edge React frontend, a Python FastAPI loop, and a raw Node.js mathematical damage engine deployed to the cloud via Modal—the AI autonomously evaluates your roster's weaknesses and algorithmically iterates through optimal items, moves, EVs, and full roster swaps until your team is mathematically proven to counter the global meta!
+Competitive Pokémon is a game of intense strategy, deep mathematical damage calculations, and predicting an ever-shifting metagame. **Bugcatcher Joey** is an intelligent, high-performance AI Strategist that takes your favorite custom Pokémon team and rigorously stress tests it against the current top-tier Smogon OU metagame threats. Using a custom hybrid architecture combining a cutting-edge React frontend, a Python FastAPI loop, and a raw Node.js mathematical damage engine deployed to the cloud via Modal the AI autonomously evaluates your roster's weaknesses and algorithmically iterates through optimal items, moves, EVs, and full roster swaps until your team is mathematically proven to counter the global meta!
 
 ## 👥 Meet the Team
 * **Steve Aby Tonio**
