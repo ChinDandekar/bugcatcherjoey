@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "type": "module",
   "dependencies": {
     "@pkmn/data": "^0.10.6",
     "@pkmn/dex": "^0.10.6",

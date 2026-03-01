@@ -28,7 +28,19 @@
         "name": "Infernape",
         "new_nature": "Hasty",
         "item": "Life Orb",
-        "moves": ["Flamethrower", "Close Combat", "U-turn", "-"]
-    }
+        "moves": ["Flamethrower", "Close Combat", "U-turn", "Flare Blitz"]
+    },
+    {
+        "name": "Gyarados",
+        "new_nature": "Jolly",
+        "item": "Leftovers",
+        "moves": ["Waterfall", "Crunch", "Earthquake", "-"]
+    },
+        {
+            "name": "Tyranitar",
+            "new_nature": "Adamant",
+            "item": "Choice Band",
+            "moves": ["Stone Edge", "Crunch", "Earthquake", "-"]
+        }
   ]
 }

@@ -32,8 +32,8 @@ function getMoveStatInteraction(move) {
 }
 
 // Constants
-const TOP_N_THREATS = 20;
-const MIN_POKEMON_USAGE_PCT = 0.005;
+const TOP_N_THREATS = 10;
+const MIN_POKEMON_USAGE_PCT = 0.001;
 const MIN_BUILD_USAGE_PCT = 0.01;
 const MIN_MOVES_PCT = 0.1;
 const MIN_ITEM_PCT = 0.1;
@@ -198,12 +198,12 @@ async function fetchChaosJson(formatId) {
                 if (r.ok) {
                     const data = await r.json();
                     if (data.info) {
-                        console.log(`  [meta] ${month} rating=${rating}`);
+// console.log (`  [meta] ${month} rating=${rating}`);
                         return data;
                     }
                 }
             } catch (e) {
-                console.log(`could not fetch for ${month}, ${formatId}, ${rating}, error: ${e.message}`);
+                // console.log(`could not fetch for ${month}, ${formatId}, ${rating}, error: ${e.message}`);
             }
         }
     }
@@ -297,9 +297,7 @@ function canEverOutspeed(me, threat) {
 async function canCounter(ourPokemon, threatBuild, offensiveRes, defensiveRes, offensiveMove, defensiveMove, usagePct) {
     const doesOutspeed = await outspeeds(ourPokemon, threatBuild);
 
-    if (ourPokemon.name === "Amoonguss" && threatBuild.name === "Rillaboom") {
-        console.log(`pokemon: ${ourPokemon.name}, threat_build: ${threatBuild.name}, offensive_res: ${JSON.stringify(offensiveRes)}, defensive_res: ${JSON.stringify(defensiveRes)}`);
-    }
+
 
     if (doesOutspeed) {
         if (offensiveRes.num_hits_to_ko === 1) return new CounterOption(threatBuild, true, usagePct, CounterType.OUTSPEED_OHKO, offensiveMove, defensiveMove);
@@ -316,7 +314,7 @@ async function canCounter(ourPokemon, threatBuild, offensiveRes, defensiveRes, o
 
 async function buildCounterList(ourPokemon, threatBuilds, threatUsagePct, moves) {
     const candidates = [];
-    console.log(`    checking if ${ourPokemon.name} can counter ${threatBuilds[0][0].name}, checking ${threatBuilds.length} builds...`);
+    // console.log(`    checking if ${ourPokemon.name} can counter ${threatBuilds[0][0].name}, checking ${threatBuilds.length} builds...`);
 
     let totalUsagePctConsidered = 0;
     let counterCoverage = 0;
@@ -348,7 +346,7 @@ async function buildCounterList(ourPokemon, threatBuilds, threatUsagePct, moves)
     }
 
     if (totalUsagePctConsidered > 0 && (counterCoverage / totalUsagePctConsidered > MIN_COUNTER_COVERAGE)) {
-        console.log(`${ourPokemon.name} can counter ${threatBuilds[0][0].name}. Counter coverage: ${counterCoverage}`);
+        // console.log(`${ourPokemon.name} can counter ${threatBuilds[0][0].name}. Counter coverage: ${counterCoverage}`);
         return candidates;
     }
     return [];
@@ -376,7 +374,7 @@ function getTopThreats(chaosData) {
 }
 
 async function processThreat(threat, genNum, ourPokemon, moves) {
-    console.log(`\n  → ${threat.name} (${(threat.usage_pct * 100).toFixed(1)}% usage)`);
+    // console.log(`\n  → ${threat.name} (${(threat.usage_pct * 100).toFixed(1)}% usage)`);
     const threatBuilds = createThreatBuilds(threat, genNum);
     if (threatBuilds.length === 0) return [];
 
@@ -492,28 +490,56 @@ function finalAdaptiveDump(ourPokemon, evCredit) {
 }
 
 async function allocateEvs(ourPokemon, allCounters, countered_data) {
-    const sortedCounters = allCounters.sort((a, b) => b.usage_pct - a.usage_pct);
+    // 1. Partition all counters by Pokemon name
+    // Structure: { "Togekiss": [CounterOption, CounterOption], "Gholdengo": [...] }
+    const partitioned = allCounters.reduce((acc, counter) => {
+        const name = counter.threat_pokemon.name;
+        if (!acc[name]) acc[name] = [];
+        acc[name].push(counter);
+        return acc;
+    }, {});
 
-    // Start with 0
+    // 2. Sort the unique Pokemon names by their total usage impact
+    const sortedPokemonNames = Object.keys(partitioned).sort((a, b) => {
+        const usageA = partitioned[a].reduce((sum, c) => sum + c.usage_pct, 0);
+        const usageB = partitioned[b].reduce((sum, c) => sum + c.usage_pct, 0);
+        return usageB - usageA;
+    });
+
+    // Start with fresh EVs
     ourPokemon.options.evs = new StatsTable({ hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
- 
 
-    console.log(`Number of Pokemon already countered: ${Object.keys(countered_data.pokemon_countered).length}, covering ${(countered_data.percentage_covered * 100).toFixed(2)}% of the meta.`);
-    for (const counterOption of sortedCounters) {
-        if (counterOption.threat_pokemon in countered_data.pokemon_countered) continue;
-        let currentTotal = computeEvTotal(ourPokemon.options.evs);
-        let currentEvsLeft = MAX_TOTAL_EVS - currentTotal;
-        
-        if (currentEvsLeft <= 4) break;
+// console.log (`Starting allocation. Already covering ${(countered_data.percentage_covered * 100).toFixed(2)}% of meta.`);
 
-        // Pass the CURRENT remaining credit
-        let countered = minimizeEvs(ourPokemon, counterOption, currentEvsLeft);
-        if (countered) {
-            countered_data.pokemon_countered[counterOption.threat_pokemon.name] = ourPokemon.name;
-            countered_data.percentage_covered += counterOption.usage_pct;
-            // console.log(`Countered ${counterOption.threat_pokemon.name} with ${(counterOption.usage_pct * 100).toFixed(2)}% usage. EVs left: ${currentEvsLeft}`);
+    for (const name of sortedPokemonNames) {
+        // Skip if this Pokemon was already countered by a previous teammate
+        if (name in countered_data.pokemon_countered) continue;
+
+        const builds = partitioned[name];
+        const totalThreatUsage = builds.reduce((sum, c) => sum + c.usage_pct, 0);
+        let usageHandledByOurMon = 0;
+
+        // Try to minimize EVs for each build of this specific Pokemon
+        for (const counterOption of builds) {
+            let currentTotal = computeEvTotal(ourPokemon.options.evs);
+            let currentEvsLeft = MAX_TOTAL_EVS - currentTotal;
+            
+            if (currentEvsLeft <= 0) break;
+
+            // Attempt to meet the counter requirement
+            const success = await minimizeEvs(ourPokemon, counterOption, currentEvsLeft);
+            if (success) {
+                usageHandledByOurMon += counterOption.usage_pct;
+            }
         }
 
+        // 3. Check if we countered the weighted majority (e.g., > 50% of this Pokemon's builds)
+        if (usageHandledByOurMon > (totalThreatUsage / 2) && usageHandledByOurMon > 0) {
+            countered_data.pokemon_countered[name] = ourPokemon.name;
+            countered_data.percentage_covered += usageHandledByOurMon;
+            
+// console.log (`  [Success] ${ourPokemon.name} covered ${name} (${(usageHandledByOurMon * 100).toFixed(2)}% meta usage)`);
+        }
     }
 
     // Final dump of remaining points
@@ -522,10 +548,9 @@ async function allocateEvs(ourPokemon, allCounters, countered_data) {
         finalAdaptiveDump(ourPokemon, MAX_TOTAL_EVS - finalTotal);
     }
 
-    console.log(`Final EV Total: ${computeEvTotal(ourPokemon.options.evs)}`);
-    console.log(`Current allocated evs:`, ourPokemon.options.evs);
-    console.log(`Countered ${Object.keys(countered_data.pokemon_countered).length} threats covering ${(countered_data.percentage_covered * 100).toFixed(2)}% of the meta.`);
-
+// console.log (`\nFinal EV Total: ${computeEvTotal(ourPokemon.options.evs)}`);
+// console.log (`Current allocated evs:`, ourPokemon.options.evs);
+// console.log (`Total Meta Coverage: ${(countered_data.percentage_covered * 100).toFixed(2)}%`);
 }
 
 function computeEvTotal(evSpread) {
@@ -544,20 +569,20 @@ async function getCounterType(ourPokemon, threatPokemon, offensiveMove, defensiv
 }
 
 async function optimize(ourMon, fmt, countered_data, ourMoves = [], nature = "Hardy") {
-    console.log(`\n${'='.repeat(55)}`);
-    console.log(`  Optimizing ${ourMon} for ${fmt}`);
-    console.log(`${'='.repeat(55)}`);
+// console.log (`\n${'='.repeat(55)}`);
+// console.log (`  Optimizing ${ourMon} for ${fmt}`);
+// console.log (`${'='.repeat(55)}`);
 
     const [formatId, genNum] = parseFormat(fmt);
 
-    console.log("\n[1/3] Fetching meta threats...");
+// console.log ("\n[1/3] Fetching meta threats...");
     const chaos = await fetchChaosJson(formatId);
     if (!chaos) throw new Error(`Could not fetch chaos data for: ${formatId}`);
 
     const threats = getTopThreats(chaos);
-    console.log(`      ${threats.length} threats above ${(MIN_POKEMON_USAGE_PCT * 100).toFixed(0)}% usage`);
+// console.log (`      ${threats.length} threats above ${(MIN_POKEMON_USAGE_PCT * 100).toFixed(0)}% usage`);
 
-    console.log("\n[2/3] Binary-searching counter conditions per threat...");
+// console.log ("\n[2/3] Binary-searching counter conditions per threat...");
     const ourPokemon = buildOurPokemon(ourMon, genNum, nature, {
         hp: MAX_STAT_EVS, atk: MAX_STAT_EVS, def: MAX_STAT_EVS, spa: MAX_STAT_EVS, spd: MAX_STAT_EVS, spe: MAX_STAT_EVS
     }, ourMoves);
@@ -568,7 +593,7 @@ async function optimize(ourMon, fmt, countered_data, ourMoves = [], nature = "Ha
 
     const allCounters = results.flat().filter(Boolean);
 
-    console.log(`Pokemon countered before allocateEvs: ${countered_data.pokemon_countered.size}, Percentage of meta covered: ${(countered_data.percentage_covered * 100).toFixed(2)}%`);
+// console.log (`Pokemon countered before allocateEvs: ${countered_data.pokemon_countered.size}, Percentage of meta covered: ${(countered_data.percentage_covered * 100).toFixed(2)}%`);
     await allocateEvs(ourPokemon, allCounters, countered_data);
     return ourPokemon;
 }
@@ -634,27 +659,45 @@ function outspeeds(ourPokemon, threatPokemon) {
 // }
 
 if (process.argv[1] === fileURLToPath(import.meta.url) || require.main === module) {
-    const args = process.argv.slice(2);
+    
+    const jsonInput = process.argv[2];
 
-    if (args.length < 1) {
-        console.log("Usage: node optimizer.js <path_to_json_file> [format]");
-        console.log('  e.g. node optimizer.js team.json "gen9doublesou"');
+    if (!jsonInput) {
+        console.error("Error: No team data provided in arguments.");
+        console.log("Usage: node optimizer2.js '<JSON_STRING>'");
         process.exit(1);
     }
 
-    const filePath = args[0];
-    const fmt = args[1] || "gen9ou"; // Default format if not provided
-
     try {
-        // Read and parse the JSON file
-        const rawData = fs.readFileSync(filePath, 'utf8');
-        const input = JSON.parse(rawData);
+        const parsed = JSON.parse(jsonInput);
 
-        if (!Array.isArray(input.team)) {
+        if (!parsed.team || !Array.isArray(parsed.team)) {
+            throw new Error("Invalid JSON: 'team' array not found.");
+        }
+
+        // Use the format from the JSON if available, or default
+        const fmt = parsed.format || "gen9doublesou";
+    
+    
+//     const args = process.argv.slice(2);
+
+//     if (args.length < 1) {
+// // console.log ("Usage: node optimizer.js <path_to_json_file> [format]");
+// // console.log ('  e.g. node optimizer.js team.json "gen9doublesou"');
+//         process.exit(1);
+//     }
+
+//     const filePath = args[0];
+//     const fmt = args[1] || "gen9ou"; // Default format if not provided
+
+        // Read and parse the JSON file
+        // const rawData = fs.readFileSync(filePath, 'utf8');
+
+        if (!Array.isArray(parsed.team)) {
             throw new Error("JSON must contain a 'team' array.");
         }
 
-        console.log(`Starting optimization for ${input.team.length} Pokémon...`);
+// console.log (`Starting optimization for ${input.team.length} Pokémon...`);
         let countered_data = {
             pokemon_countered: {},
             percentage_covered: 0
@@ -664,14 +707,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url) || require.main === modul
 
         const runOptimizations = async () => {
             let assigned_evs_per_pokemon = {};
-            for (const member of input.team) {
+            for (const member of parsed.team) {
                 const { name, new_nature, moves } = member;
                 
                 // Clean up moves (remove "-" placeholders and trim)
                 const cleanMoves = moves ? moves.filter(m => m !== "-").map(m => m.trim()) : [];
                 const nature = new_nature || "Hardy";
 
-                console.log(`\n--- Optimizing ${name} (${nature}) ---`);
+// console.log (`\n--- Optimizing ${name} (${nature}) ---`);
                 let assigned_evs = null;
                 try {
                     assigned_evs = (await optimize(name, fmt, countered_data, cleanMoves, nature)).options.evs;
@@ -681,14 +724,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url) || require.main === modul
                 assigned_evs_per_pokemon[name] = assigned_evs;
                 // break
             }
-            console.log("\nAll optimizations complete.");
-            console.log(`Our team counters ${Object.keys(countered_data.pokemon_countered).length} threats covering ${(countered_data.percentage_covered * 100).toFixed(2)}% of the meta.`);
+// console.log ("\nAll optimizations complete.");
+// console.log (`Our team counters ${Object.keys(countered_data.pokemon_countered).length} threats covering ${(countered_data.percentage_covered * 100).toFixed(2)}% of the meta.`);
             for (const member of Object.keys(countered_data.pokemon_countered)) {
-                console.log(`  - ${member} (countered by ${countered_data.pokemon_countered[member]})`);
+// console.log (`  - ${member} (countered by ${countered_data.pokemon_countered[member]})`);
             }
-            console.log("\nFinal EV spreads assigned to each Pokémon:");
+// console.log ("\nFinal EV spreads assigned to each Pokémon:");
             for (const [pokemon, evs] of Object.entries(assigned_evs_per_pokemon)) {
-                console.log(`  - ${pokemon}: ${JSON.stringify(evs)}`);
+// console.log (`  - ${pokemon}: ${JSON.stringify(evs)}`);
             }
 
             let output_data = {
