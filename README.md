@@ -1,4 +1,4 @@
-# Bugcatcher Joey: AI Pokémon Meta Optimizer 🧢⚡️
+# BugCatcher Joey: AI Pokémon Meta Optimizer 🧢⚡️
 
 **Built for HackIllinois 2026**
 
