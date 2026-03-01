@@ -12,6 +12,11 @@ export default function PokemonDatabase({ insideHub = false }) {
     const [pokemonDetails, setPokemonDetails] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
 
+    // Type Filter State
+    const [selectedFilterType, setSelectedFilterType] = useState('All');
+    const [validTypePokemonNames, setValidTypePokemonNames] = useState(null);
+    const [typeFilterLoading, setTypeFilterLoading] = useState(false);
+
     useEffect(() => {
         fetch('https://pokeapi.co/api/v2/pokemon?limit=500')
             .then(res => res.json())
@@ -59,7 +64,32 @@ export default function PokemonDatabase({ insideHub = false }) {
             });
     }, [selectedPokemon]);
 
-    const filteredPokemon = pokemonList.filter(p => p.name.includes(searchTerm.toLowerCase()));
+    useEffect(() => {
+        if (selectedFilterType === 'All') {
+            setValidTypePokemonNames(null);
+            return;
+        }
+
+        setTypeFilterLoading(true);
+        fetch(`https://pokeapi.co/api/v2/type/${selectedFilterType.toLowerCase()}`)
+            .then(res => res.json())
+            .then(data => {
+                const names = data.pokemon.map(p => p.pokemon.name);
+                setValidTypePokemonNames(names);
+                setTypeFilterLoading(false);
+            })
+            .catch(err => {
+                console.error("Error fetching type data", err);
+                setValidTypePokemonNames(null);
+                setTypeFilterLoading(false);
+            });
+    }, [selectedFilterType]);
+
+    const filteredPokemon = pokemonList.filter(p => {
+        const matchesName = p.name.includes(searchTerm.toLowerCase());
+        const matchesType = validTypePokemonNames ? validTypePokemonNames.includes(p.name) : true;
+        return matchesName && matchesType;
+    });
 
     // Helper logic to process PokeAPI damage relations into a unified multiplier map
     const calculateMatchups = (typesData) => {
@@ -99,9 +129,9 @@ export default function PokemonDatabase({ insideHub = false }) {
                 </div>
             )}
 
-            <div style={{ textAlign: 'center', marginTop: insideHub ? '1rem' : '0' }}>
+            <div style={{ textAlign: 'center', marginTop: insideHub ? '1rem' : '0', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
 
-                <div style={{ position: 'relative', maxWidth: '500px', margin: '0 auto' }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
                     <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
                         type="text"
@@ -122,9 +152,41 @@ export default function PokemonDatabase({ insideHub = false }) {
                         }}
                     />
                 </div>
+
+                <div style={{ position: 'relative', width: '100%', maxWidth: '200px' }}>
+                    <select
+                        value={selectedFilterType}
+                        onChange={(e) => { sfx.playHover(); setSelectedFilterType(e.target.value); }}
+                        style={{
+                            background: 'var(--glass-bg)',
+                            border: '1px solid var(--glass-border)',
+                            padding: '1rem 1.5rem',
+                            color: 'white',
+                            borderRadius: '25px',
+                            fontFamily: 'var(--font-heading)',
+                            fontSize: '1rem',
+                            width: '100%',
+                            outline: 'none',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                            appearance: 'none',
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                            textAlign: 'center',
+                            textAlignLast: 'center'
+                        }}
+                    >
+                        <option value="All" style={{ background: 'var(--bg-dark)' }}>ALL TYPES</option>
+                        {Object.keys(typeColors).map(type => (
+                            <option key={type} value={type} style={{ background: 'var(--bg-dark)', color: typeColors[type] }}>
+                                {type.toUpperCase()}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
             </div>
 
-            {loading ? (
+            {loading || typeFilterLoading ? (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '1.2rem', padding: '4rem 0' }}>
                     <Zap size={48} className="spin" style={{ color: 'var(--warning)', margin: '0 auto 1rem', display: 'block' }} />
                     Loading Database...

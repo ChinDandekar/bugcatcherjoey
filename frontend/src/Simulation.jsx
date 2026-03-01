@@ -18,7 +18,7 @@ export default function Simulation({ initialTeam }) {
 
         const runSimulation = async () => {
             try {
-                const response = await fetch('https://bugcatcherjoey1996--pokemon-ai-optimizer-fastapi-app-dev.modal.run/simulate', {
+                const response = await fetch('https://bugcatcherjoey1996--pokemon-ai-optimizer-fastapi-app.modal.run/simulate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ team: initialTeam })
