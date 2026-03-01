@@ -93,8 +93,8 @@ export default function Home({ onStart, initialTeam }) {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: '3rem', padding: '2rem 0' }}>
 
             <div style={{ textAlign: 'center' }}>
-                <h1 className="text-gradient" style={{ fontSize: '4rem', marginBottom: '1rem', textTransform: 'uppercase' }}>
-                    Meta Optimizer
+                <h1 className="text-gradient" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', fontSize: '3rem', margin: '0' }}>
+                    BugCatcher Joey
                 </h1>
                 <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto', fontFamily: 'var(--font-heading)' }}>
                     Configure your starting stress-test lineup. The AI will strategically reconstruct this team to counter &gt;60% of current top tier threats.
