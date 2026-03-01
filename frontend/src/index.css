@@ -80,6 +80,24 @@
   --text-muted: #475569;
 }
 
+/* Theme 5: HackIllinois Space */
+[data-theme="space"] {
+  --bg-dark: #0a0b1e;
+  --bg-gradient: linear-gradient(135deg, #0a0b1e 0%, #170f38 50%, #2b1154 100%);
+  --overlay-bg: rgba(10, 11, 30, 0.85);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(0, 245, 212, 0.2);
+  --glass-glow: rgba(247, 37, 133, 0.3);
+  --blob-1: #7b2cbf;
+  --blob-2: #f72585;
+
+  --primary: #00f5d4;
+  --primary-glow: #00bbf9;
+  --success: #38b000;
+  --warning: #ffb703;
+  --danger: #d90429;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

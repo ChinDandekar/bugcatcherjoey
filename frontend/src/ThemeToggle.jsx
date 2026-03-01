@@ -9,7 +9,8 @@ export default function ThemeToggle() {
         { id: 'red', color: '#ef4444', label: 'Rotom Red' },
         { id: 'violet', color: '#a855f7', label: 'Rotom Violet' },
         { id: 'midnight', color: '#818cf8', label: 'Rotom Midnight' },
-        { id: 'pokeball', color: 'pokeball', label: 'Classic Pokeball' }
+        { id: 'pokeball', color: 'pokeball', label: 'Classic Pokeball' },
+        { id: 'space', color: 'linear-gradient(135deg, #7b2cbf 0%, #00f5d4 100%)', label: 'HackIllinois Space' }
     ];
 
     return (
