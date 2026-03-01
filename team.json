@@ -1,0 +1,34 @@
+{
+  "team": [
+    {
+        "name": "Dragonite",
+        "new_nature": "Adamant",
+        "item": "Lum Berry",
+        "moves": ["Dragon Dance", "Outrage", "Earthquake", "Fire Punch"]
+    },
+    {
+      "name": "Kingambit",
+      "new_nature": "Impish",
+      "item": "Leftovers",
+      "moves": ["Body Press", "Kowtow Cleave", "Iron Head", "-"]
+    },
+    {
+      "name": "Garchomp",
+      "new_nature": "Jolly",
+      "item": "Choice Band",
+      "moves": ["Earthquake", "Outrage", "Stone Edge", "Fire Fang"]
+    },
+    {
+      "name": "Torkoal",
+      "new_nature": "Modest",
+      "item": "Life Orb",
+      "moves": ["Eruption", "Earth Power", "-", "-"]
+    },
+    {
+        "name": "Infernape",
+        "new_nature": "Hasty",
+        "item": "Life Orb",
+        "moves": ["Flamethrower", "Close Combat", "U-turn", "-"]
+    }
+  ]
+}
